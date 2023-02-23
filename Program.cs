@@ -12,38 +12,55 @@ static class Program
         Console.CursorVisible = false;
         while (true)
         {
+            ProcessLogic();
             ProcessInput();
             DrawField();
         }
     }
     private static void ProcessLogic()
-    { 
+    {
         _field[_playerX, _playerY] = Cell.Player;
     }
     private static void ProcessInput()
     {
-        var key = Console.ReadKey();
+        var key = Console.ReadKey(true);
+        void Clear()
+        {
+            _field[_playerX, _playerY] = Cell.Empty;
+        }
         switch (key.Key)
         {
             case ConsoleKey.W:
             case ConsoleKey.UpArrow:
                 if (_playerY != 0)
+                {
+                    Clear();
                     _playerY--;
+                }
                 break;
             case ConsoleKey.S:
             case ConsoleKey.DownArrow:
-                if (_playerY != _field.GetLength(1) - 1)
+                if (_playerY != 0)
+                {
+                    Clear();
                     _playerY++;
+                }
                 break;
             case ConsoleKey.A:
             case ConsoleKey.LeftArrow:
-                if (_playerX != 0)
+                if (_playerY != 0)
+                {
+                    Clear();
                     _playerX--;
+                }
                 break;
             case ConsoleKey.D:
             case ConsoleKey.RightArrow:
-                if (_playerX != _field.GetLength(0) - 1)
+                if (_playerY != 0)
+                {
+                    Clear();
                     _playerX++;
+                }
                 break;
         }
     }
@@ -62,7 +79,7 @@ static class Program
                         break;
                     case Cell.Player:
                         symbol = '!';
-                        break;  
+                        break;
                 }
                 Console.Write(symbol);
             }

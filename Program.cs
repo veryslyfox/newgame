@@ -9,13 +9,17 @@ static class Program
     public static int _playerX, _playerY;
     static void Main()
     {
+        Console.CursorVisible = false;
         while (true)
         {
             ProcessInput();
             DrawField();
         }
     }
-
+    private static void ProcessLogic()
+    { 
+        _field[_playerX, _playerY] = Cell.Player;
+    }
     private static void ProcessInput()
     {
         var key = Console.ReadKey();
@@ -45,17 +49,22 @@ static class Program
     }
     private static void DrawField()
     {
-        Console.Clear();
-        Console.SetCursorPosition(_playerX, _playerY);
+        Console.SetCursorPosition(0, 0);
         for (int y = 0; y < _field.GetLength(1); y++)
         {
             for (int x = 0; x < _field.GetLength(0); x++)
             {
-                if (_field[x, y] == Cell.Player)
+                char symbol = '?';
+                switch (_field[x, y])
                 {
-                    Console.Write('!');
+                    case Cell.Empty:
+                        symbol = '.';
+                        break;
+                    case Cell.Player:
+                        symbol = '!';
+                        break;  
                 }
-
+                Console.Write(symbol);
             }
             Console.WriteLine();
         }

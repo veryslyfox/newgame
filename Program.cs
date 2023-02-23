@@ -1,26 +1,36 @@
-﻿enum Cell
+﻿using System.Diagnostics;
+enum Cell
 {
     Empty,
     Player,
     Barrier,
     Exit,
+    Projectile,
 }
 static class Program
 {
     public static Cell[,] _field = new Cell[30, 30];
+    public static int _fx = 29;
+    public static int _fy = 29;
     public static int _playerX, _playerY;
     public static Random _rng = new();
-    private static string _error;
+    private static string _error = "";
     private static bool _isWin;
     private static bool _isGameOver;
+    private static long _time;
+    private static long _moveProjectilesTime;
     static void Main()
     {
         Console.CursorVisible = false;
-        _field[29, 29] = Cell.Exit;
-        for (int i = 0; i < 200; i++)
+        for (int i = 0; i < 100; i++)
         {
-            _field[_rng.Next(30), _rng.Next(30)] = Cell.Barrier;
+            _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Barrier;
         }
+        for (int i = 0; i < 80; i++)
+        {
+            _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Projectile;
+        }
+        _field[_field.GetLength(0) - 1, _field.GetLength(1) - 1] = Cell.Exit;
         DrawField();
         while (!(_isWin || _isGameOver))
         {
@@ -41,6 +51,21 @@ static class Program
     private static void ProcessLogic()
     {
         _field[_playerX, _playerY] = Cell.Player;
+        TimeSync();
+        if (_moveProjectilesTime - _time > 500)
+        {
+            for (int column = 0; column < _fy; column++)
+            {
+                for (int row = 0; row < _fx; row++)
+                {
+                    if (_field[column, row] == Cell.Projectile)
+                    {
+                        AddProjectile(column, row);
+                    }
+                }
+            }
+            _moveProjectilesTime = _time;
+        }
     }
     private static void ProcessInput()
     {
@@ -49,23 +74,23 @@ static class Program
         {
             case ConsoleKey.W:
             case ConsoleKey.UpArrow:
-                OffsetHandle(0, -1);
+                OffsetPlayer(0, -1);
                 break;
             case ConsoleKey.S:
             case ConsoleKey.DownArrow:
-                OffsetHandle(0, 1);
+                OffsetPlayer(0, 1);
                 break;
             case ConsoleKey.A:
             case ConsoleKey.LeftArrow:
-                OffsetHandle(-1, 0);
+                OffsetPlayer(-1, 0);
                 break;
             case ConsoleKey.D:
             case ConsoleKey.RightArrow:
-                OffsetHandle(1, 0);
+                OffsetPlayer(1, 0);
                 break;
         }
     }
-    private static void OffsetHandle(int x, int y)
+    private static void OffsetPlayer(int x, int y)
     {
         var xNext = _playerX + x;
         var yNext = _playerY + y;
@@ -82,11 +107,22 @@ static class Program
         {
             _isWin = true;
         }
+        if (cell == Cell.Projectile)
+        {
+            _isGameOver = true;
+        }
         _field[_playerX, _playerY] = Cell.Empty;
         _playerX = xNext;
         _playerY = yNext;
     }
-
+    private static void AddProjectile(int x, int y)
+    {
+        if (y != _field.GetLength(1) - 1)
+        {
+            _field[x, y] = Cell.Empty;
+            _field[x, y + 1] = Cell.Projectile;
+        }
+    }
     private static void DrawField()
     {
         Console.SetCursorPosition(0, 0);
@@ -116,4 +152,27 @@ static class Program
         }
         Console.WriteLine(_error);
     }
+    // static Direct GetDirect(this Cell cell)
+    // {
+    //     return cell switch
+    //     {
+    //         Cell.ProjectileD => Direct.Down,
+    //         Cell.ProjectileL => Direct.Left,
+    //         Cell.ProjectileR => Direct.Right,
+    //         Cell.ProjectileU => Direct.Up,
+    //         _ => Direct.Never,
+    //     };
+    // }
+    static void TimeSync()
+    {
+        _time = Stopwatch.GetTimestamp() / Stopwatch.Frequency * 1000;
+    }
+}
+enum Direct
+{
+    Left,
+    Right,
+    Up,
+    Down,
+    Never,
 }

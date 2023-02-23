@@ -11,21 +11,32 @@ static class Program
     public static int _playerX, _playerY;
     public static Random _rng = new();
     private static string _error;
-
+    private static bool _isWin;
+    private static bool _isGameOver;
     static void Main()
     {
         Console.CursorVisible = false;
-        for (int i = 0; i < 300; i++)
+        _field[29, 29] = Cell.Exit;
+        for (int i = 0; i < 200; i++)
         {
             _field[_rng.Next(30), _rng.Next(30)] = Cell.Barrier;
         }
         DrawField();
-        while (true)
+        while (!(_isWin || _isGameOver))
         {
             ProcessInput();
             ProcessLogic();
             DrawField();
         }
+        if (_isWin)
+        {
+            Console.WriteLine("Game win!");
+        }
+        else
+        {
+            Console.WriteLine("Game over");
+        }
+        Console.ReadLine();
     }
     private static void ProcessLogic()
     {
@@ -62,14 +73,20 @@ static class Program
         {
             return;
         }
-        if (_field[xNext, yNext] == Cell.Barrier)
+        var cell = _field[xNext, yNext];
+        if (cell == Cell.Barrier)
         {
             return;
+        }
+        if (cell == Cell.Exit)
+        {
+            _isWin = true;
         }
         _field[_playerX, _playerY] = Cell.Empty;
         _playerX = xNext;
         _playerY = yNext;
     }
+
     private static void DrawField()
     {
         Console.SetCursorPosition(0, 0);
@@ -89,7 +106,9 @@ static class Program
                     case Cell.Barrier:
                         symbol = '#';
                         break;
-                    
+                    case Cell.Exit:
+                        symbol = '>';
+                        break;
                 }
                 Console.Write(symbol);
             }

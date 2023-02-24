@@ -7,11 +7,14 @@ enum Cell
     Exit,
     Projectile,
     OffsetedProjectile,
-    Cannon
+    Cannon,
+    Never
 }
 static class Program
 {
-    public static Cell[,] _field = new Cell[30, 30];
+    const long ProjectileDelay = 500;
+    const long CannonDelay = 2500;
+    public static Cell[,] _field = new Cell[16, 7];
     public static int _fx = _field.GetLength(0) - 1;
     public static int _fy = _field.GetLength(1) - 1;
     public static int _playerX, _playerY;
@@ -26,16 +29,12 @@ static class Program
     private static int _rounds;
     static void Main()
     {
-        A:
-        _field.Initialize();
+    A:
         TimeSync();
         _moveProjectilesTime = _time;
         _temp = 0.1;
         Console.CursorVisible = false;
-        for (int i = 1; i < 30; i++)
-        {
-            _field[i, 0] = Cell.Cannon;
-        }
+        Read("Lvl2");
         _field[_field.GetLength(0) - 1, _field.GetLength(1) - 1] = Cell.Exit;
         DrawField();
         while (!(_isWin || _isGameOver))
@@ -58,7 +57,7 @@ static class Program
     }
     private static void ProcessLogic()
     {
-        if (_rounds == 80)
+        if(_rounds == 80)
         {
             _temp = 1;
         }
@@ -70,7 +69,7 @@ static class Program
         {
             for (int row = 0; row <= _fy; row++)
             {
-                if (_field[column, row] == Cell.Projectile && _time - _moveProjectilesTime > 500 * _temp)
+                if (_field[column, row] == Cell.Projectile && _time - _moveProjectilesTime > ProjectileDelay * _temp)
                 {
                     AddProjectile(column, row);
                     isMove = true;
@@ -79,9 +78,9 @@ static class Program
                 {
                     _field[column, row] = Cell.Projectile;
                 }
-                if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > 2000 * _temp)
+                if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > CannonDelay * _temp)
                 {
-                    AddProjectile(column, row + 1);
+                    _field[column, row + 1] = Cell.Projectile;
                     isFire = true;
                 }
             }
@@ -131,7 +130,7 @@ static class Program
             return;
         }
         var cell = _field[xNext, yNext];
-        if (cell == Cell.Barrier)
+        if (cell is Cell.Barrier or Cell.Cannon)
         {
             return;
         }
@@ -190,7 +189,7 @@ static class Program
                         symbol = '>';
                         break;
                     case Cell.Projectile:
-                        symbol = '+';
+                        symbol = 'v';
                         break;
                     case Cell.Cannon:
                         symbol = '/';
@@ -201,8 +200,6 @@ static class Program
             Console.WriteLine();
         }
         Console.WriteLine(_error);
-        TimeSync();
-        Console.WriteLine(_time);
     }
     // static Direct GetDirect(this Cell cell)
     // {
@@ -218,6 +215,69 @@ static class Program
     static void TimeSync()
     {
         _time = (long)(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency * 1000);
+    }
+    static void Init(string name)
+    {
+        var file = File.OpenText(name);
+        for (int row = 0; row <= _fx; row++)
+        {
+            var column = 0;
+            foreach (var symbol in file.ReadLine()!)
+            {
+                if (file.EndOfStream)
+                {
+                    return;
+                }
+                column++;
+            }
+        }
+        
+    }
+    static void Write(string name, int stringLength, int stringCount)
+    {
+        var file = File.CreateText(name);
+        file.WriteLine();
+    }
+    static void Read(string name)
+    {
+        var file = File.OpenText(name);
+        for (int row = 0; row <= _fx; row++)
+        {
+            var column = 0;
+            foreach (var symbol in file.ReadLine()!)
+            {
+                if (file.EndOfStream)
+                {
+                    return;
+                }
+                Cell cell;
+                switch (symbol)
+                {
+                    case '.':
+                        cell = Cell.Empty;
+                        break;
+                    case '#':
+                        cell = Cell.Barrier;
+                        break;
+                    case '/':
+                        cell = Cell.Cannon;
+                        break;
+                    case '!':
+                        cell = Cell.Player;
+                        _playerX = column;
+                        _playerY = row; 
+                        break;
+                    case '>':
+                        cell = Cell.Exit;
+                        break;
+                    default:
+                        cell = Cell.Never;
+                        break;
+                }
+                _field[column, row] = cell;
+                column++;
+            }
+        }
     }
 }
 enum Direct

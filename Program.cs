@@ -12,9 +12,9 @@ enum Cell
 static class Program
 {
     public static Cell[,] _field = new Cell[30, 30];
-    public static int _fx = 29;
-    public static int _fy = 29;
-    public static int _playerX = 15, _playerY = 15;
+    public static int _fx = _field.GetLength(0) - 1;
+    public static int _fy = _field.GetLength(1) - 1;
+    public static int _playerX, _playerY;
     public static Random _rng = new();
     private static string _error = "";
     private static bool _isWin;
@@ -22,13 +22,20 @@ static class Program
     private static long _time;
     private static long _moveProjectilesTime;
     private static long _cannonTime;
-
+    private static double _temp = 1;
+    private static int _rounds;
     static void Main()
     {
+        A:
+        _field.Initialize();
         TimeSync();
         _moveProjectilesTime = _time;
+        _temp = 0.1;
         Console.CursorVisible = false;
-        _field[15, 0] = Cell.Cannon;
+        for (int i = 1; i < 30; i++)
+        {
+            _field[i, 0] = Cell.Cannon;
+        }
         _field[_field.GetLength(0) - 1, _field.GetLength(1) - 1] = Cell.Exit;
         DrawField();
         while (!(_isWin || _isGameOver))
@@ -36,6 +43,7 @@ static class Program
             ProcessInput();
             ProcessLogic();
             DrawField();
+            _rounds++;
         }
         if (_isWin)
         {
@@ -46,32 +54,44 @@ static class Program
             Console.WriteLine("Game over");
         }
         Console.ReadLine();
+        goto A;
     }
     private static void ProcessLogic()
     {
+        if (_rounds == 80)
+        {
+            _temp = 1;
+        }
         _field[_playerX, _playerY] = Cell.Player;
         TimeSync();
-        if (_time - _moveProjectilesTime > 500)
+        var isFire = false;
+        var isMove = false;
+        for (int column = 0; column <= _fx; column++)
         {
-            for (int column = 0; column < _fx; column++)
+            for (int row = 0; row <= _fy; row++)
             {
-                for (int row = 0; row < _fy; row++)
+                if (_field[column, row] == Cell.Projectile && _time - _moveProjectilesTime > 500 * _temp)
                 {
-                    if (_field[column, row] == Cell.Projectile)
-                    {
-                        AddProjectile(column, row);
-                    }
-                    if (_field[column, row] == Cell.OffsetedProjectile)
-                    {
-                        _field[column, row] = Cell.Projectile;
-                    }
-                    if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > 2000)
-                    {
-                        AddProjectile(column, row + 1);
-                        _cannonTime = _time;
-                    }
+                    AddProjectile(column, row);
+                    isMove = true;
+                }
+                if (_field[column, row] == Cell.OffsetedProjectile)
+                {
+                    _field[column, row] = Cell.Projectile;
+                }
+                if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > 2000 * _temp)
+                {
+                    AddProjectile(column, row + 1);
+                    isFire = true;
                 }
             }
+        }
+        if (isFire)
+        {
+            _cannonTime = _time;
+        }
+        if (isMove)
+        {
             _moveProjectilesTime = _time;
         }
     }
@@ -131,7 +151,7 @@ static class Program
     {
         if (y != _field.GetLength(1) - 1)
         {
-            if (_field[x, y + 1] == Cell.Barrier)
+            if (_field[x, y + 1] is Cell.Barrier or Cell.Exit)
             {
                 goto end;
             }

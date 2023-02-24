@@ -6,32 +6,29 @@ enum Cell
     Barrier,
     Exit,
     Projectile,
+    OffsetedProjectile,
+    Cannon
 }
 static class Program
 {
     public static Cell[,] _field = new Cell[30, 30];
     public static int _fx = 29;
     public static int _fy = 29;
-    public static int _playerX, _playerY;
+    public static int _playerX = 15, _playerY = 15;
     public static Random _rng = new();
     private static string _error = "";
     private static bool _isWin;
     private static bool _isGameOver;
     private static long _time;
     private static long _moveProjectilesTime;
+    private static long _cannonTime;
+
     static void Main()
     {
         TimeSync();
         _moveProjectilesTime = _time;
         Console.CursorVisible = false;
-        // for (int i = 0; i < 100; i++)
-        // {
-        //     _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Barrier;
-        // }
-        for (int i = 0; i < 100; i++)
-        {
-            _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Projectile;
-        }
+        _field[15, 0] = Cell.Cannon;
         _field[_field.GetLength(0) - 1, _field.GetLength(1) - 1] = Cell.Exit;
         DrawField();
         while (!(_isWin || _isGameOver))
@@ -63,6 +60,15 @@ static class Program
                     if (_field[column, row] == Cell.Projectile)
                     {
                         AddProjectile(column, row);
+                    }
+                    if (_field[column, row] == Cell.OffsetedProjectile)
+                    {
+                        _field[column, row] = Cell.Projectile;
+                    }
+                    if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > 2000)
+                    {
+                        AddProjectile(column, row + 1);
+                        _cannonTime = _time;
                     }
                 }
             }
@@ -125,9 +131,21 @@ static class Program
     {
         if (y != _field.GetLength(1) - 1)
         {
+            if (_field[x, y + 1] == Cell.Barrier)
+            {
+                goto end;
+            }
             _field[x, y] = Cell.Empty;
-            _field[x, y + 1] = Cell.Projectile;
+            if (_field[x, y + 1] == Cell.Player)
+            {
+                _isGameOver = true;
+                return;
+            }
+            _field[x, y + 1] = Cell.OffsetedProjectile;
+            return;
         }
+        _field[x, y] = Cell.Empty;
+    end:;
     }
     private static void DrawField()
     {
@@ -153,6 +171,9 @@ static class Program
                         break;
                     case Cell.Projectile:
                         symbol = '+';
+                        break;
+                    case Cell.Cannon:
+                        symbol = '/';
                         break;
                 }
                 Console.Write(symbol);

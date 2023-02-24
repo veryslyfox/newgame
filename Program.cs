@@ -21,12 +21,14 @@ static class Program
     private static long _moveProjectilesTime;
     static void Main()
     {
+        TimeSync();
+        _moveProjectilesTime = _time;
         Console.CursorVisible = false;
+        // for (int i = 0; i < 100; i++)
+        // {
+        //     _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Barrier;
+        // }
         for (int i = 0; i < 100; i++)
-        {
-            _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Barrier;
-        }
-        for (int i = 0; i < 80; i++)
         {
             _field[_rng.Next(_field.GetLength(0)), _rng.Next(_field.GetLength(1))] = Cell.Projectile;
         }
@@ -52,11 +54,11 @@ static class Program
     {
         _field[_playerX, _playerY] = Cell.Player;
         TimeSync();
-        if (_moveProjectilesTime - _time > 500)
+        if (_time - _moveProjectilesTime > 500)
         {
-            for (int column = 0; column < _fy; column++)
+            for (int column = 0; column < _fx; column++)
             {
-                for (int row = 0; row < _fx; row++)
+                for (int row = 0; row < _fy; row++)
                 {
                     if (_field[column, row] == Cell.Projectile)
                     {
@@ -69,6 +71,10 @@ static class Program
     }
     private static void ProcessInput()
     {
+        if (!Console.KeyAvailable)
+        {
+            return;
+        }
         var key = Console.ReadKey(true);
         switch (key.Key)
         {
@@ -145,12 +151,17 @@ static class Program
                     case Cell.Exit:
                         symbol = '>';
                         break;
+                    case Cell.Projectile:
+                        symbol = '+';
+                        break;
                 }
                 Console.Write(symbol);
             }
             Console.WriteLine();
         }
         Console.WriteLine(_error);
+        TimeSync();
+        Console.WriteLine(_time);
     }
     // static Direct GetDirect(this Cell cell)
     // {
@@ -165,7 +176,7 @@ static class Program
     // }
     static void TimeSync()
     {
-        _time = Stopwatch.GetTimestamp() / Stopwatch.Frequency * 1000;
+        _time = (long)(Stopwatch.GetTimestamp() / (double)Stopwatch.Frequency * 1000);
     }
 }
 enum Direct

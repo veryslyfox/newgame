@@ -8,13 +8,14 @@ enum Cell
     Projectile,
     OffsetedProjectile,
     Cannon,
-    Never
+    Never,
+    Bomb,
 }
 static class Program
 {
     const long ProjectileDelay = 500;
     const long CannonDelay = 2500;
-    public static Cell[,] _field = new Cell[16, 7];
+    public static Cell[,] _field = new Cell[10, 16];
     public static int _fx = _field.GetLength(0) - 1;
     public static int _fy = _field.GetLength(1) - 1;
     public static int _playerX, _playerY;
@@ -27,15 +28,22 @@ static class Program
     private static long _cannonTime;
     private static double _temp = 1;
     private static int _rounds;
+    private static Cell _moveCell = Cell.Empty;
+    private static bool _active = true;
     static void Main()
     {
     A:
+        Array.Clear(_field);
+        _isWin = false;
+        _isGameOver = false;
+        _playerX = 0;
+        _playerY = 0;
+        Read("Lvl");
         TimeSync();
         _moveProjectilesTime = _time;
-        _temp = 0.1;
+        _temp = 0.01;
+        _rounds = 0;
         Console.CursorVisible = false;
-        Read("Lvl2");
-        _field[_field.GetLength(0) - 1, _field.GetLength(1) - 1] = Cell.Exit;
         DrawField();
         while (!(_isWin || _isGameOver))
         {
@@ -52,47 +60,56 @@ static class Program
         {
             Console.WriteLine("Game over");
         }
-        Console.ReadLine();
+        Console.ReadKey();
         goto A;
     }
     private static void ProcessLogic()
     {
-        if(_rounds == 80)
+        if (_rounds == 80)
         {
             _temp = 1;
         }
+        OffsetPlayer(0, 0);
         _field[_playerX, _playerY] = Cell.Player;
-        TimeSync();
-        var isFire = false;
-        var isMove = false;
-        for (int column = 0; column <= _fx; column++)
+        if (_active)
         {
-            for (int row = 0; row <= _fy; row++)
+            TimeSync();
+            var isFire = false;
+            var isMove = false;
+            for (int column = 0; column <= _fx; column++)
             {
-                if (_field[column, row] == Cell.Projectile && _time - _moveProjectilesTime > ProjectileDelay * _temp)
+                for (int row = 0; row <= _fy; row++)
                 {
-                    AddProjectile(column, row);
-                    isMove = true;
-                }
-                if (_field[column, row] == Cell.OffsetedProjectile)
-                {
-                    _field[column, row] = Cell.Projectile;
-                }
-                if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > CannonDelay * _temp)
-                {
-                    _field[column, row + 1] = Cell.Projectile;
-                    isFire = true;
+                    if (_field[column, row] == Cell.Projectile && _time - _moveProjectilesTime > ProjectileDelay * _temp)
+                    {
+                        AddProjectile(column, row);
+                        isMove = true;
+                    }
+                    if (_field[column, row] == Cell.OffsetedProjectile)
+                    {
+                        _field[column, row] = Cell.Projectile;
+                    }
+                    if (_field[column, row] == Cell.Cannon && (_time - _cannonTime) > CannonDelay * _temp)
+                    {
+                        if (_field[column, row] == Cell.Player)
+                        {
+                            _isGameOver = true;
+                        }
+                        _field[column, row + 1] = Cell.Projectile;
+                        isFire = true;
+                    }
                 }
             }
+            if (isFire)
+            {
+                _cannonTime = _time;
+            }
+            if (isMove)
+            {
+                _moveProjectilesTime = _time;
+            }
         }
-        if (isFire)
-        {
-            _cannonTime = _time;
-        }
-        if (isMove)
-        {
-            _moveProjectilesTime = _time;
-        }
+
     }
     private static void ProcessInput()
     {
@@ -119,6 +136,9 @@ static class Program
             case ConsoleKey.RightArrow:
                 OffsetPlayer(1, 0);
                 break;
+            case ConsoleKey.R:
+            ExecutionInput();
+                break;
         }
     }
     private static void OffsetPlayer(int x, int y)
@@ -142,7 +162,7 @@ static class Program
         {
             _isGameOver = true;
         }
-        _field[_playerX, _playerY] = Cell.Empty;
+        _field[_playerX, _playerY] = _moveCell;
         _playerX = xNext;
         _playerY = yNext;
     }
@@ -177,7 +197,7 @@ static class Program
                 switch (_field[x, y])
                 {
                     case Cell.Empty:
-                        symbol = '.';
+                        symbol = ' ';
                         break;
                     case Cell.Player:
                         symbol = '!';
@@ -219,9 +239,12 @@ static class Program
     static void Init(string name)
     {
         var file = File.OpenText(name);
-        for (int row = 0; row <= _fx; row++)
+        var column = 0;
+        var row = 0;
+#pragma warning disable
+        for (int i = 0; i <= long.MaxValue; i++)
+#pragma warning restore
         {
-            var column = 0;
             foreach (var symbol in file.ReadLine()!)
             {
                 if (file.EndOfStream)
@@ -230,8 +253,9 @@ static class Program
                 }
                 column++;
             }
+            row = i;
         }
-        
+        _field = new Cell[column, row];
     }
     static void Write(string name, int stringLength, int stringCount)
     {
@@ -265,7 +289,7 @@ static class Program
                     case '!':
                         cell = Cell.Player;
                         _playerX = column;
-                        _playerY = row; 
+                        _playerY = row;
                         break;
                     case '>':
                         cell = Cell.Exit;
@@ -277,6 +301,34 @@ static class Program
                 _field[column, row] = cell;
                 column++;
             }
+        }
+    }
+    static void PlayerClear()
+    {
+        for (int column = 0; column <= _fx; column++)
+        {
+            for (int i = 0; i <= _fy; i++)
+            {
+
+            }
+        }
+    }
+    static void ExecutionInput()
+    {
+        var command = Console.ReadLine();
+        if (command == "deactive")
+        {
+            _active = false;
+        }
+        if (command == "active")
+        {
+            _active = true;
+            _moveCell = Cell.Empty;
+            
+        }
+        if (int.TryParse(command, out int i))
+        {
+            _moveCell = (Cell)i;
         }
     }
 }
